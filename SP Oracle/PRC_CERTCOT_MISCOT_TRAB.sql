@@ -430,7 +430,7 @@ BEGIN
     SELECT 
         vt.REC_PERIODO,
         vt.NRO_COMPROBANTE,
-        vt.TIPO_IMPRE,
+        NVL(vt.TIPO_IMPRE, 1) AS TIPO_IMPRE,
         vt.SUC_COD,
         vt.USU_CODIGO,
         'A' AS TIPO_ENT,
@@ -484,7 +484,7 @@ BEGIN
     SELECT 
         vt.REC_PERIODO,
         vt.NRO_COMPROBANTE,
-        vt.TIPO_IMPRE,
+        NVL(vt.TIPO_IMPRE, 1) AS TIPO_IMPRE,
         vt.SUC_COD,
         vt.USU_CODIGO,
         'A' AS TIPO_ENT,
@@ -535,7 +535,7 @@ BEGIN
     SELECT 
         vt.REC_PERIODO,
         vt.NRO_COMPROBANTE,
-        vt.TIPO_IMPRE,
+        NVL(vt.TIPO_IMPRE, 1) AS TIPO_IMPRE,
         vt.SUC_COD,
         vt.USU_CODIGO,
         'A' AS TIPO_ENT,
@@ -585,7 +585,7 @@ BEGIN
     SELECT 
         vt.REC_PERIODO,
         vt.NRO_COMPROBANTE,
-        vt.TIPO_IMPRE,
+        NVL(vt.TIPO_IMPRE, 1) AS TIPO_IMPRE,
         vt.SUC_COD,
         vt.USU_CODIGO,
         'A' AS TIPO_ENT,
@@ -641,7 +641,7 @@ BEGIN
     SELECT 
         vt.REC_PERIODO,
         vt.NRO_COMPROBANTE,
-        vt.TIPO_IMPRE,
+        NVL(vt.TIPO_IMPRE, 1) AS TIPO_IMPRE,
         vt.SUC_COD,
         vt.USU_CODIGO,
         'B' AS TIPO_ENT,
@@ -703,7 +703,7 @@ BEGIN
     SELECT 
         vt.REC_PERIODO,
         vt.NRO_COMPROBANTE,
-        vt.TIPO_IMPRE,
+        NVL(vt.TIPO_IMPRE, 1) AS TIPO_IMPRE,
         vt.SUC_COD,
         vt.USU_CODIGO,
         'B' AS TIPO_ENT,
@@ -763,7 +763,7 @@ BEGIN
     SELECT 
         vt.REC_PERIODO,
         vt.NRO_COMPROBANTE,
-        vt.TIPO_IMPRE,
+        NVL(vt.TIPO_IMPRE, 1) AS TIPO_IMPRE,
         vt.SUC_COD,
         vt.USU_CODIGO,
         'B' AS TIPO_ENT,
@@ -831,7 +831,7 @@ BEGIN
     SELECT 
         vt.REC_PERIODO,
         vt.NRO_COMPROBANTE,
-        vt.TIPO_IMPRE,
+        NVL(vt.TIPO_IMPRE, 1) AS TIPO_IMPRE,
         vt.SUC_COD,
         vt.USU_CODIGO,
         'C' AS TIPO_ENT,
@@ -908,7 +908,7 @@ BEGIN
     SELECT 
         vt.REC_PERIODO,
         vt.NRO_COMPROBANTE,
-        vt.TIPO_IMPRE,
+        NVL(vt.TIPO_IMPRE, 1) AS TIPO_IMPRE,
         vt.SUC_COD,
         vt.USU_CODIGO,
         'D' AS TIPO_ENT,
@@ -956,7 +956,7 @@ BEGIN
     SELECT 
         vt.REC_PERIODO,
         vt.NRO_COMPROBANTE,
-        vt.TIPO_IMPRE,
+        NVL(vt.TIPO_IMPRE, 1) AS TIPO_IMPRE,
         vt.SUC_COD,
         vt.USU_CODIGO,
         'E' AS TIPO_ENT,
@@ -1004,7 +1004,7 @@ BEGIN
     SELECT DISTINCT
         vt.REC_PERIODO,
         vt.NRO_COMPROBANTE,
-        vt.TIPO_IMPRE,
+        NVL(vt.TIPO_IMPRE, 1) AS TIPO_IMPRE,
         vt.SUC_COD,
         vt.USU_CODIGO,
         'F' AS TIPO_ENT,
@@ -1088,7 +1088,7 @@ BEGIN
     SELECT 
         vt.REC_PERIODO,
         vt.NRO_COMPROBANTE,
-        vt.TIPO_IMPRE,
+        NVL(vt.TIPO_IMPRE, 1) AS TIPO_IMPRE,
         vt.SUC_COD,
         vt.USU_CODIGO,
         'G' AS TIPO_ENT,
@@ -1135,7 +1135,7 @@ BEGIN
     SELECT 
         vt.REC_PERIODO,
         vt.NRO_COMPROBANTE,
-        vt.TIPO_IMPRE,
+        NVL(vt.TIPO_IMPRE, 1) AS TIPO_IMPRE,
         vt.SUC_COD,
         vt.USU_CODIGO,
         'G' AS TIPO_ENT,
@@ -1185,7 +1185,7 @@ BEGIN
             SELECT 
                 vt.REC_PERIODO,
                 vt.NRO_COMPROBANTE,
-                vt.TIPO_IMPRE,
+                NVL(vt.TIPO_IMPRE, 1) AS TIPO_IMPRE,
                 vt.SUC_COD,
                 vt.USU_CODIGO,
                 'I' AS TIPO_ENT,
@@ -1262,7 +1262,7 @@ BEGIN
             SELECT 
                 vt.REC_PERIODO,
                 vt.NRO_COMPROBANTE,
-                vt.TIPO_IMPRE,
+                NVL(vt.TIPO_IMPRE, 1) AS TIPO_IMPRE,
                 vt.SUC_COD,
                 vt.USU_CODIGO,
                 'I' AS TIPO_ENT,
@@ -1339,7 +1339,7 @@ BEGIN
             SELECT 
                 vt.REC_PERIODO,
                 vt.NRO_COMPROBANTE,
-                vt.TIPO_IMPRE,
+                NVL(vt.TIPO_IMPRE, 1) AS TIPO_IMPRE,
                 vt.SUC_COD,
                 vt.USU_CODIGO,
                 'I' AS TIPO_ENT,
@@ -1416,7 +1416,7 @@ BEGIN
             SELECT 
                 vt.REC_PERIODO,
                 vt.NRO_COMPROBANTE,
-                vt.TIPO_IMPRE,
+                NVL(vt.TIPO_IMPRE, 1) AS TIPO_IMPRE,
                 vt.SUC_COD,
                 vt.USU_CODIGO,
                 'I' AS TIPO_ENT,
@@ -1496,7 +1496,7 @@ BEGIN
     SELECT 
         vt.REC_PERIODO,
         vt.NRO_COMPROBANTE,
-        vt.TIPO_IMPRE,
+        NVL(vt.TIPO_IMPRE, 1) AS TIPO_IMPRE,
         vt.SUC_COD,
         vt.USU_CODIGO,
         'J' AS TIPO_ENT,
@@ -1547,7 +1547,7 @@ BEGIN
     SELECT 
         vt.REC_PERIODO,
         vt.NRO_COMPROBANTE,
-        vt.TIPO_IMPRE,
+        NVL(vt.TIPO_IMPRE, 1) AS TIPO_IMPRE,
         vt.SUC_COD,
         vt.USU_CODIGO,
         'J' AS TIPO_ENT,
@@ -1666,7 +1666,7 @@ BEGIN
     -- Actualizar el folio de planilla en el detalle de certificaciones
     UPDATE GTT_REC_CERT_DETALLE cd
     SET FOLIO_PLANILLA = (
-        SELECT p.PLA_NRO_SERIE
+        SELECT MAX(p.PLA_NRO_SERIE)
         FROM GTT_REC_PLANILLA p
         WHERE cd.REC_PERIODO = p.REC_PERIODO
           AND cd.NRO_COMPROBANTE = p.NRO_COMPROBANTE
