@@ -25,7 +25,7 @@ DECLARE
     v_rut_tra NUMBER;
     v_tipo_con NUMBER;
     
-    -- Variables para leer el cursor de resultados - CORREGIDAS
+    -- Variables para leer el cursor de resultados 
     v_rec_periodo DATE;
     v_nro_comprobante NUMBER;
     v_tipo_impre NUMBER;
@@ -36,14 +36,14 @@ DECLARE
     v_ent_nombre VARCHAR2(255);
     v_tra_rut NUMBER;
     v_tra_dig VARCHAR2(1);
-    v_tra_nombre VARCHAR2(80);  -- CAMBIADO: de 40 a 80
-    v_tra_ape VARCHAR2(80);     -- CAMBIADO: de 40 a 80
+    v_tra_nombre VARCHAR2(80);  
+    v_tra_ape VARCHAR2(80);     
     v_dias_trab NUMBER;
     v_rem_impo NUMBER;
     v_monto_cotizado NUMBER;
     v_fec_pago DATE;
     v_folio_planilla NUMBER;
-    v_raz_soc VARCHAR2(80);     -- CAMBIADO: de 40 a 80
+    v_raz_soc VARCHAR2(80);     
     v_salud NUMBER;
     v_monto_sis NUMBER;
     
