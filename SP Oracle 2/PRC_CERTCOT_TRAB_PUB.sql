@@ -1,24 +1,4 @@
--- Eliminar procedimiento si existe
-BEGIN
-    EXECUTE IMMEDIATE 'DROP PROCEDURE PRC_CERTCOT_TRAB_PUB';
-EXCEPTION
-    WHEN OTHERS THEN
-        IF SQLCODE != -4043 THEN -- ORA-04043: object does not exist
-            RAISE;
-        END IF;
-END;
-/
 
--- Eliminar cualquier versión con sufijo numérico
-BEGIN
-    EXECUTE IMMEDIATE 'DROP PROCEDURE PRC_CERTCOT_TRAB_PUB1';
-EXCEPTION
-    WHEN OTHERS THEN
-        IF SQLCODE != -4043 THEN -- ORA-04043: object does not exist
-            RAISE;
-        END IF;
-END;
-/
 
 CREATE OR REPLACE PROCEDURE PRC_CERTCOT_TRAB_PUB (
     p_fec_ini       IN DATE,
@@ -42,11 +22,11 @@ AS
     
 BEGIN
     -- Limpiar tablas temporales globales
-    DELETE FROM GTT_REC_VIR_TRA;
-    DELETE FROM GTT_REC_VIR_TRA2;
-    DELETE FROM GTT_REC_CERT_DETALLE;
-    DELETE FROM GTT_REC_PLANILLA;
-    DELETE FROM GTT_REC_SUCURSALES;
+    DELETE FROM GTT_REC_VIR_TRA_PUB;
+    DELETE FROM GTT_REC_VIR_TRA2_PUB;
+    DELETE FROM GTT_REC_CERT_DETALLE_PUB;
+    DELETE FROM GTT_REC_PLANILLA_PUB;
+    DELETE FROM GTT_REC_SUCURSALES_PUB;
     
     -- Lógica para determinar sucursales según tipo de consulta
     IF p_tipoCon = 2 THEN
@@ -54,7 +34,7 @@ BEGIN
         -- NOTA: La tabla DET_CTA_USU no existe en el modelo Oracle
         -- Se debe implementar la lógica correcta según el modelo de datos disponible
         -- Por ahora se usa una consulta alternativa basada en las tablas disponibles
-        INSERT INTO GTT_REC_SUCURSALES (COD_SUC)
+        INSERT INTO GTT_REC_SUCURSALES_PUB (COD_SUC)
         SELECT DISTINCT SUC_CODIGO
         FROM REC_SUCURSAL
         WHERE CON_RUT = p_emp_rut 
@@ -63,7 +43,7 @@ BEGIN
           
     ELSIF p_tipoCon = 3 THEN
         -- Consulta por impresión masiva por sucursal
-        INSERT INTO GTT_REC_SUCURSALES (COD_SUC)
+        INSERT INTO GTT_REC_SUCURSALES_PUB (COD_SUC)
         VALUES (p_Parametro);
     END IF;
     
@@ -74,7 +54,7 @@ BEGIN
     IF p_convenio >= 600 AND p_convenio <= 699 THEN
         IF p_tipoCon = 1 THEN
             -- Consulta individual - Proceso 1,3,4
-            INSERT INTO GTT_REC_VIR_TRA2
+            INSERT INTO GTT_REC_VIR_TRA2_PUB
             SELECT
                 trabajador.rec_periodo,                    -- REC_PERIODO
                 trabajador.con_rut,                        -- CON_RUT
@@ -210,7 +190,7 @@ BEGIN
             
         ELSE
             -- Consulta por sucursal - Proceso 1,3,4
-            INSERT INTO GTT_REC_VIR_TRA2
+            INSERT INTO GTT_REC_VIR_TRA2_PUB
             SELECT
                 trabajador.rec_periodo,                    -- REC_PERIODO
                 trabajador.con_rut,                        -- CON_RUT
@@ -270,7 +250,7 @@ BEGIN
                 AND pago.pag_digest IS NOT NULL 
                 AND pago.ret_estado = 5
                 AND trabajador.tra_rut = p_rut_tra
-                AND trabajador.suc_codigo IN (SELECT COD_SUC FROM GTT_REC_SUCURSALES)
+                AND trabajador.suc_codigo IN (SELECT COD_SUC FROM GTT_REC_SUCURSALES_PUB)
             UNION ALL
             -- Consulta por sucursal - Proceso 2
             SELECT
@@ -342,7 +322,7 @@ BEGIN
                 AND pago.pag_digest IS NOT NULL 
                 AND pago.ret_estado = 5
                 AND trabajador.tra_rut = p_rut_tra
-                AND trabajador.suc_codigo IN (SELECT COD_SUC FROM GTT_REC_SUCURSALES)
+                AND trabajador.suc_codigo IN (SELECT COD_SUC FROM GTT_REC_SUCURSALES_PUB)
                 AND trabajador.usu_codigo = dato_usuario.usu_codigo
             ORDER BY 1, 22, 23;  -- rec_periodo, suc_codigo, usu_codigo
         END IF;
@@ -350,7 +330,7 @@ BEGIN
     ELSE  -- Convenio < 600 o > 699
         IF p_tipoCon = 1 THEN
             -- Consulta individual - Proceso 1,3,4
-            INSERT INTO GTT_REC_VIR_TRA2
+            INSERT INTO GTT_REC_VIR_TRA2_PUB
             SELECT
                 trabajador.rec_periodo,                    -- REC_PERIODO
                 trabajador.con_rut,                        -- CON_RUT
@@ -474,7 +454,7 @@ BEGIN
             
         ELSE
             -- Consulta por sucursal - Proceso 1,3,4
-            INSERT INTO GTT_REC_VIR_TRA2
+            INSERT INTO GTT_REC_VIR_TRA2_PUB
             SELECT
                 trabajador.rec_periodo,                    -- REC_PERIODO
                 trabajador.con_rut,                        -- CON_RUT
@@ -518,7 +498,7 @@ BEGIN
                 AND trabajador.tra_rut = p_rut_tra
                 AND pago.pag_digest IS NOT NULL 
                 AND pago.ret_estado = 5
-                AND trabajador.suc_codigo IN (SELECT COD_SUC FROM GTT_REC_SUCURSALES)
+                AND trabajador.suc_codigo IN (SELECT COD_SUC FROM GTT_REC_SUCURSALES_PUB)
                 AND empresa.rec_periodo = pago.rec_periodo
                 AND empresa.con_rut = pago.con_rut
                 AND empresa.con_correl = pago.con_correl
@@ -579,7 +559,7 @@ BEGIN
                 AND trabajador.tra_rut = p_rut_tra
                 AND pago.pag_digest IS NOT NULL 
                 AND pago.ret_estado = 5
-                AND trabajador.suc_codigo IN (SELECT COD_SUC FROM GTT_REC_SUCURSALES)
+                AND trabajador.suc_codigo IN (SELECT COD_SUC FROM GTT_REC_SUCURSALES_PUB)
                 AND trabajador.usu_codigo = dato_usuario.usu_codigo
                 AND empresa.rec_periodo = dato_usuario.rec_periodo 
                 AND empresa.con_rut = dato_usuario.con_rut
@@ -600,17 +580,17 @@ BEGIN
         END IF;
     END IF;
     
-    -- Si el tipo de consulta es > a 1, traspasa los datos a la tabla GTT_REC_VIR_TRA
+    -- Si el tipo de consulta es > a 1, traspasa los datos a la tabla GTT_REC_VIR_TRA_PUB
     IF p_parametro2 IS NOT NULL THEN
         -- Cuando es agrupado por dato usuario
-        INSERT INTO GTT_REC_VIR_TRA
-        SELECT * FROM GTT_REC_VIR_TRA2
+        INSERT INTO GTT_REC_VIR_TRA_PUB
+        SELECT * FROM GTT_REC_VIR_TRA2_PUB
         WHERE USU_CODIGO = p_parametro2
         ORDER BY REC_PERIODO, SUC_COD, USU_CODIGO;
     ELSE
         -- Cuando es agrupado por sucursal
-        INSERT INTO GTT_REC_VIR_TRA
-        SELECT * FROM GTT_REC_VIR_TRA2
+        INSERT INTO GTT_REC_VIR_TRA_PUB
+        SELECT * FROM GTT_REC_VIR_TRA2_PUB
         ORDER BY REC_PERIODO, SUC_COD, USU_CODIGO;
     END IF;
 
@@ -619,13 +599,13 @@ BEGIN
     INTO v_nomTra, v_apeTra
     FROM (
         SELECT TRA_NOMBRE, TRA_APE
-        FROM GTT_REC_VIR_TRA
+        FROM GTT_REC_VIR_TRA_PUB
         ORDER BY REC_PERIODO DESC
     )
     WHERE ROWNUM = 1;
 
     -- Actualiza todos los registros con el nombre del trabajador del último período
-    UPDATE GTT_REC_VIR_TRA
+    UPDATE GTT_REC_VIR_TRA_PUB
     SET TRA_NOMBRE = TRIM(v_nomTra),
         TRA_APE = TRIM(v_apeTra);
 
@@ -633,7 +613,7 @@ BEGIN
     -- VOS, por incorporación de Rem_imp_AFP
     -- Se deja este solo para el proceso de Gratificaciones
     -- VOS2090928 agrego NVL(REC_TRAAFP.afp_seg_inv_sobre, 0) as afp_seg_inv_sobre
-    INSERT INTO GTT_REC_CERT_DETALLE (
+    INSERT INTO GTT_REC_CERT_DETALLE_PUB (
         REC_PERIODO,
         NRO_COMPROBANTE,
         TIPO_IMPRE,
@@ -683,7 +663,7 @@ BEGIN
         NULL AS SALUD,
         NVL(trab_afp.AFP_SEG_INV_SOBRE, 0) AS MONTO_SIS,
         vt.USU_PAGO_RETROACTIVO
-    FROM GTT_REC_VIR_TRA vt
+    FROM GTT_REC_VIR_TRA_PUB vt
         INNER JOIN REC_TRAAFP trab_afp ON
             vt.REC_PERIODO = trab_afp.REC_PERIODO
             AND vt.CON_RUT = trab_afp.CON_RUT
@@ -707,7 +687,7 @@ BEGIN
     -- VOS, por incorporación de Rem_imp_AFP
     -- Se agrega para el proceso de remuneraciones que lea del campo Rem_impo
     -- para períodos menores a Julio del 2009
-    INSERT INTO GTT_REC_CERT_DETALLE (
+    INSERT INTO GTT_REC_CERT_DETALLE_PUB (
         REC_PERIODO, NRO_COMPROBANTE, TIPO_IMPRE, SUC_COD, USU_COD,
         TIPO_ENT, ENT_RUT, ENT_NOMBRE, TRA_RUT, TRA_DIG, TRA_NOMBRE, TRA_APE,
         DIAS_TRAB, REM_IMPO, MONTO_COTIZADO, FEC_PAGO, FOLIO_PLANILLA,
@@ -735,7 +715,7 @@ BEGIN
         NULL AS SALUD,
         NVL(trab_afp.AFP_SEG_INV_SOBRE, 0) AS MONTO_SIS,
         vt.USU_PAGO_RETROACTIVO
-    FROM GTT_REC_VIR_TRA vt
+    FROM GTT_REC_VIR_TRA_PUB vt
         INNER JOIN REC_TRAAFP trab_afp ON
             vt.REC_PERIODO = trab_afp.REC_PERIODO
             AND vt.CON_RUT = trab_afp.CON_RUT
@@ -761,7 +741,7 @@ BEGIN
     -- VOS, por incorporación de Rem_imp_AFP
     -- Se agrega para el proceso de remuneraciones que lea del campo rem_imp_afp
     -- para períodos mayores o iguales a Julio del 2009
-    INSERT INTO GTT_REC_CERT_DETALLE (
+    INSERT INTO GTT_REC_CERT_DETALLE_PUB (
         REC_PERIODO, NRO_COMPROBANTE, TIPO_IMPRE, SUC_COD, USU_COD,
         TIPO_ENT, ENT_RUT, ENT_NOMBRE, TRA_RUT, TRA_DIG, TRA_NOMBRE, TRA_APE,
         DIAS_TRAB, REM_IMPO, MONTO_COTIZADO, FEC_PAGO, FOLIO_PLANILLA,
@@ -789,7 +769,7 @@ BEGIN
         NULL AS SALUD,
         NVL(trab_afp.AFP_SEG_INV_SOBRE, 0) AS MONTO_SIS,
         vt.USU_PAGO_RETROACTIVO
-    FROM GTT_REC_VIR_TRA vt
+    FROM GTT_REC_VIR_TRA_PUB vt
         INNER JOIN REC_TRAAFP trab_afp ON
             vt.REC_PERIODO = trab_afp.REC_PERIODO
             AND vt.CON_RUT = trab_afp.CON_RUT
@@ -813,7 +793,7 @@ BEGIN
 
     -- Cotización INP: Previsión
     -- VOS 20100125 por UF 64,7 se incorporó AND (EXTRACT(YEAR FROM vt.REC_PERIODO) >= 2010)
-    INSERT INTO GTT_REC_CERT_DETALLE (
+    INSERT INTO GTT_REC_CERT_DETALLE_PUB (
         REC_PERIODO, NRO_COMPROBANTE, TIPO_IMPRE, SUC_COD, USU_COD,
         TIPO_ENT, ENT_RUT, ENT_NOMBRE, TRA_RUT, TRA_DIG, TRA_NOMBRE, TRA_APE,
         DIAS_TRAB, REM_IMPO, MONTO_COTIZADO, FEC_PAGO, FOLIO_PLANILLA,
@@ -849,7 +829,7 @@ BEGIN
         NULL AS SALUD,
         0 AS MONTO_SIS,
         vt.USU_PAGO_RETROACTIVO
-    FROM GTT_REC_VIR_TRA vt
+    FROM GTT_REC_VIR_TRA_PUB vt
         INNER JOIN REC_TRAINP tra_inp ON
             vt.REC_PERIODO = tra_inp.REC_PERIODO
             AND vt.CON_RUT = tra_inp.CON_RUT
@@ -870,7 +850,7 @@ BEGIN
     ORDER BY vt.REC_PERIODO, vt.SUC_COD, vt.USU_CODIGO;
 
     -- Cotización INP: Fondo
-    INSERT INTO GTT_REC_CERT_DETALLE (
+    INSERT INTO GTT_REC_CERT_DETALLE_PUB (
         REC_PERIODO, NRO_COMPROBANTE, TIPO_IMPRE, SUC_COD, USU_COD,
         TIPO_ENT, ENT_RUT, ENT_NOMBRE, TRA_RUT, TRA_DIG, TRA_NOMBRE, TRA_APE,
         DIAS_TRAB, REM_IMPO, MONTO_COTIZADO, FEC_PAGO, FOLIO_PLANILLA,
@@ -906,7 +886,7 @@ BEGIN
         NULL AS SALUD,
         0 AS MONTO_SIS,
         vt.USU_PAGO_RETROACTIVO
-    FROM GTT_REC_VIR_TRA vt
+    FROM GTT_REC_VIR_TRA_PUB vt
         INNER JOIN REC_TRAINP tra_inp ON
             vt.REC_PERIODO = tra_inp.REC_PERIODO
             AND vt.CON_RUT = tra_inp.CON_RUT
@@ -927,7 +907,7 @@ BEGIN
     ORDER BY vt.REC_PERIODO, vt.SUC_COD, vt.USU_CODIGO;
 
     -- Cotización ISAPRE
-    INSERT INTO GTT_REC_CERT_DETALLE (
+    INSERT INTO GTT_REC_CERT_DETALLE_PUB (
         REC_PERIODO, NRO_COMPROBANTE, TIPO_IMPRE, SUC_COD, USU_COD,
         TIPO_ENT, ENT_RUT, ENT_NOMBRE, TRA_RUT, TRA_DIG, TRA_NOMBRE, TRA_APE,
         DIAS_TRAB, REM_IMPO, MONTO_COTIZADO, FEC_PAGO, FOLIO_PLANILLA,
@@ -963,7 +943,7 @@ BEGIN
         vt.TRA_ISA_DEST AS SALUD,
         0 AS MONTO_SIS,
         vt.USU_PAGO_RETROACTIVO
-    FROM GTT_REC_VIR_TRA vt
+    FROM GTT_REC_VIR_TRA_PUB vt
         INNER JOIN REC_TRAISA tra_isapre ON
             vt.REC_PERIODO = tra_isapre.REC_PERIODO
             AND vt.CON_RUT = tra_isapre.CON_RUT
@@ -984,7 +964,7 @@ BEGIN
     ORDER BY vt.REC_PERIODO, vt.SUC_COD, vt.USU_CODIGO;
 
     -- Cotización CCAF (Cajas de Compensación de Asignación Familiar)
-    INSERT INTO GTT_REC_CERT_DETALLE (
+    INSERT INTO GTT_REC_CERT_DETALLE_PUB (
         REC_PERIODO, NRO_COMPROBANTE, TIPO_IMPRE, SUC_COD, USU_COD,
         TIPO_ENT, ENT_RUT, ENT_NOMBRE, TRA_RUT, TRA_DIG, TRA_NOMBRE, TRA_APE,
         DIAS_TRAB, REM_IMPO, MONTO_COTIZADO, FEC_PAGO, FOLIO_PLANILLA,
@@ -1028,7 +1008,7 @@ BEGIN
         NULL AS SALUD,
         0 AS MONTO_SIS,
         vt.USU_PAGO_RETROACTIVO
-    FROM GTT_REC_VIR_TRA vt
+    FROM GTT_REC_VIR_TRA_PUB vt
         CROSS JOIN REC_ENTPREV ccaf
     WHERE vt.REC_PERIODO BETWEEN p_fec_ini AND p_fec_ter
         AND vt.CON_RUT = p_emp_rut
@@ -1039,7 +1019,7 @@ BEGIN
     ORDER BY vt.REC_PERIODO, vt.SUC_COD, vt.USU_CODIGO;
 
     -- Cotización Fondo de Cesantía
-    INSERT INTO GTT_REC_CERT_DETALLE (
+    INSERT INTO GTT_REC_CERT_DETALLE_PUB (
         REC_PERIODO, NRO_COMPROBANTE, TIPO_IMPRE, SUC_COD, USU_COD,
         TIPO_ENT, ENT_RUT, ENT_NOMBRE, TRA_RUT, TRA_DIG, TRA_NOMBRE, TRA_APE,
         DIAS_TRAB, REM_IMPO, MONTO_COTIZADO, FEC_PAGO, FOLIO_PLANILLA,
@@ -1067,7 +1047,7 @@ BEGIN
         NULL AS SALUD,
         0 AS MONTO_SIS,
         vt.USU_PAGO_RETROACTIVO
-    FROM GTT_REC_VIR_TRA vt
+    FROM GTT_REC_VIR_TRA_PUB vt
         CROSS JOIN REC_ENTPREV afc
     WHERE vt.REC_PERIODO BETWEEN p_fec_ini AND p_fec_ter
         AND vt.CON_RUT = p_emp_rut
@@ -1079,7 +1059,7 @@ BEGIN
     ORDER BY vt.REC_PERIODO, vt.SUC_COD, vt.USU_CODIGO;
 
     -- Cotización AFP - Trabajo pesado
-    INSERT INTO GTT_REC_CERT_DETALLE (
+    INSERT INTO GTT_REC_CERT_DETALLE_PUB (
         REC_PERIODO, NRO_COMPROBANTE, TIPO_IMPRE, SUC_COD, USU_COD,
         TIPO_ENT, ENT_RUT, ENT_NOMBRE, TRA_RUT, TRA_DIG, TRA_NOMBRE, TRA_APE,
         DIAS_TRAB, REM_IMPO, MONTO_COTIZADO, FEC_PAGO, FOLIO_PLANILLA,
@@ -1107,7 +1087,7 @@ BEGIN
         NULL AS SALUD,
         0 AS MONTO_SIS,
         vt.USU_PAGO_RETROACTIVO
-    FROM GTT_REC_VIR_TRA vt
+    FROM GTT_REC_VIR_TRA_PUB vt
         INNER JOIN REC_TRAAFP trab_afp ON
             vt.REC_PERIODO = trab_afp.REC_PERIODO
             AND vt.CON_RUT = trab_afp.CON_RUT
@@ -1131,7 +1111,7 @@ BEGIN
     -- Cotización Accidente del trabajo (Mutual)
     -- VOS 20100125 por UF 64,7 se incorporó AND (EXTRACT(YEAR FROM vt.REC_PERIODO) >= 2010)
     -- VOS 20100204 por solicitud de FR se agregó validación de TOTAL_MUTUAL
-    INSERT INTO GTT_REC_CERT_DETALLE (
+    INSERT INTO GTT_REC_CERT_DETALLE_PUB (
         REC_PERIODO, NRO_COMPROBANTE, TIPO_IMPRE, SUC_COD, USU_COD,
         TIPO_ENT, ENT_RUT, ENT_NOMBRE, TRA_RUT, TRA_DIG, TRA_NOMBRE, TRA_APE,
         DIAS_TRAB, REM_IMPO, MONTO_COTIZADO, FEC_PAGO, FOLIO_PLANILLA,
@@ -1179,7 +1159,7 @@ BEGIN
         NULL AS SALUD,
         0 AS MONTO_SIS,
         vt.USU_PAGO_RETROACTIVO
-    FROM GTT_REC_VIR_TRA vt
+    FROM GTT_REC_VIR_TRA_PUB vt
         INNER JOIN REC_TOTALSUC tm ON
             vt.REC_PERIODO = tm.REC_PERIODO
             AND vt.CON_RUT = tm.CON_RUT
@@ -1199,7 +1179,7 @@ BEGIN
     ORDER BY vt.REC_PERIODO, vt.SUC_COD, vt.USU_CODIGO;
 
     -- Cotización APV (Ahorro Previsional Voluntario)
-    INSERT INTO GTT_REC_CERT_DETALLE (
+    INSERT INTO GTT_REC_CERT_DETALLE_PUB (
         REC_PERIODO, NRO_COMPROBANTE, TIPO_IMPRE, SUC_COD, USU_COD,
         TIPO_ENT, ENT_RUT, ENT_NOMBRE, TRA_RUT, TRA_DIG, TRA_NOMBRE, TRA_APE,
         DIAS_TRAB, REM_IMPO, MONTO_COTIZADO, FEC_PAGO, FOLIO_PLANILLA,
@@ -1227,7 +1207,7 @@ BEGIN
         NULL AS SALUD,
         0 AS MONTO_SIS,
         vt.USU_PAGO_RETROACTIVO
-    FROM GTT_REC_VIR_TRA vt
+    FROM GTT_REC_VIR_TRA_PUB vt
         INNER JOIN REC_TRAAFP trab_afp ON
             vt.REC_PERIODO = trab_afp.REC_PERIODO
             AND vt.CON_RUT = trab_afp.CON_RUT
@@ -1249,7 +1229,7 @@ BEGIN
     ORDER BY vt.REC_PERIODO, vt.SUC_COD, vt.USU_CODIGO;
 
     -- Cotización Cuenta de Ahorro AFP
-    INSERT INTO GTT_REC_CERT_DETALLE (
+    INSERT INTO GTT_REC_CERT_DETALLE_PUB (
         REC_PERIODO, NRO_COMPROBANTE, TIPO_IMPRE, SUC_COD, USU_COD,
         TIPO_ENT, ENT_RUT, ENT_NOMBRE, TRA_RUT, TRA_DIG, TRA_NOMBRE, TRA_APE,
         DIAS_TRAB, REM_IMPO, MONTO_COTIZADO, FEC_PAGO, FOLIO_PLANILLA,
@@ -1277,7 +1257,7 @@ BEGIN
         NULL AS SALUD,
         0 AS MONTO_SIS,
         vt.USU_PAGO_RETROACTIVO
-    FROM GTT_REC_VIR_TRA vt
+    FROM GTT_REC_VIR_TRA_PUB vt
         INNER JOIN REC_TRAAFP trab_afp ON
             vt.REC_PERIODO = trab_afp.REC_PERIODO
             AND vt.CON_RUT = trab_afp.CON_RUT
@@ -1309,7 +1289,7 @@ BEGIN
         -- Cursor para procesar planillas
         CURSOR tra_cursor IS
             SELECT DISTINCT REC_PERIODO, TIPO_IMPRE, NRO_COMPROBANTE
-            FROM GTT_REC_CERT_DETALLE;
+            FROM GTT_REC_CERT_DETALLE_PUB;
     BEGIN
         -- Procesar planillas usando cursor
         FOR rec IN tra_cursor LOOP
@@ -1318,7 +1298,7 @@ BEGIN
             v_numComp := rec.NRO_COMPROBANTE;
 
             -- Insertar planillas AFP
-            INSERT INTO GTT_REC_PLANILLA (
+            INSERT INTO GTT_REC_PLANILLA_PUB (
                 REC_PERIODO, NRO_COMPROBANTE, ENT_RUT, PLA_NRO_SERIE, SUC_COD, USU_COD
             )
             SELECT DISTINCT
@@ -1328,7 +1308,7 @@ BEGIN
                 pl.PLA_NRO_SERIE,
                 cd.SUC_COD,
                 cd.USU_COD
-            FROM GTT_REC_CERT_DETALLE cd
+            FROM GTT_REC_CERT_DETALLE_PUB cd
                 INNER JOIN REC_PLANILLA pl ON
                     cd.REC_PERIODO = pl.REC_PERIODO
                     AND cd.NRO_COMPROBANTE = pl.NRO_COMPROBANTE
@@ -1340,7 +1320,7 @@ BEGIN
                 AND cd.NRO_COMPROBANTE = v_numComp
                 AND cd.TIPO_ENT = 'A'
                 AND NOT EXISTS (
-                    SELECT 1 FROM GTT_REC_PLANILLA gp
+                    SELECT 1 FROM GTT_REC_PLANILLA_PUB gp
                     WHERE gp.REC_PERIODO = v_periodo
                         AND gp.NRO_COMPROBANTE = v_numComp
                         AND gp.ENT_RUT = cd.ENT_RUT
@@ -1351,10 +1331,10 @@ BEGIN
     END;
 
     -- Actualizar folio de planilla en cert_detalle
-    UPDATE GTT_REC_CERT_DETALLE cd
+    UPDATE GTT_REC_CERT_DETALLE_PUB cd
     SET FOLIO_PLANILLA = (
         SELECT p.PLA_NRO_SERIE
-        FROM GTT_REC_PLANILLA p
+        FROM GTT_REC_PLANILLA_PUB p
         WHERE cd.REC_PERIODO = p.REC_PERIODO
             AND cd.NRO_COMPROBANTE = p.NRO_COMPROBANTE
             AND cd.ENT_RUT = p.ENT_RUT
@@ -1362,7 +1342,7 @@ BEGIN
             AND cd.USU_COD = p.USU_COD
     )
     WHERE EXISTS (
-        SELECT 1 FROM GTT_REC_PLANILLA p
+        SELECT 1 FROM GTT_REC_PLANILLA_PUB p
         WHERE cd.REC_PERIODO = p.REC_PERIODO
             AND cd.NRO_COMPROBANTE = p.NRO_COMPROBANTE
             AND cd.ENT_RUT = p.ENT_RUT
@@ -1372,7 +1352,7 @@ BEGIN
 
     -- Resultado final: Seleccionar todos los registros del certificado
     OPEN p_cursor FOR
-        SELECT * FROM GTT_REC_CERT_DETALLE
+        SELECT * FROM GTT_REC_CERT_DETALLE_PUB
         ORDER BY REC_PERIODO, SUC_COD, USU_COD, TIPO_ENT;
 
 EXCEPTION
