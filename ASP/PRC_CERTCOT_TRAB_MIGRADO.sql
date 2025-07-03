@@ -238,7 +238,7 @@ BEGIN
 
     -- ============================================================================
     -- NUEVA SECCIÓN: LLAMAR A STORED PROCEDURES ORACLE SEGÚN TIPO DE EMPRESA
-    -- Llama a PRC_CERTCOT_MISCOT_TRAB o PRC_CERTCOT_TRAB_PUB según corresponda
+    -- Llama a PRC_REC_CERTCOT_TRAB o PRC_CERTCOT_TRAB_PUB según corresponda
     -- ============================================================================
 
     DECLARE
@@ -246,14 +246,15 @@ BEGIN
     BEGIN
     -- Llamar al SP correspondiente según tipo de empresa
     IF v_es_empresa_publica = 'N' THEN
-        -- Empresa privada: llamar a PRC_CERTCOT_MISCOT_TRAB
-        PRC_CERTCOT_MISCOT_TRAB(
+        -- Empresa privada: llamar a PRC_REC_CERTCOT_TRAB
+        PRC_REC_CERTCOT_TRAB(
             p_fec_ini    => v_per_desde,
             p_fec_ter    => v_per_hasta,
             p_emp_rut    => p_emp_rut,
             p_convenio   => p_cnv_cta,
             p_rut_tra    => p_rut_tra,
-            p_parametro1 => p_tipo_con,
+            p_tipoCon    => p_tipo_con,
+            p_parametro  => NULL,
             p_parametro2 => NULL,
             p_parametro3 => p_imp_ccaf,
             p_cursor     => v_cursor_datos_sp
@@ -266,7 +267,8 @@ BEGIN
             p_emp_rut    => p_emp_rut,
             p_convenio   => p_cnv_cta,
             p_rut_tra    => p_rut_tra,
-            p_parametro1 => p_tipo_con,
+            p_tipoCon    => p_tipo_con,
+            p_Parametro  => NULL,
             p_parametro2 => NULL,
             p_parametro3 => p_imp_ccaf,
             p_cursor     => v_cursor_datos_sp
@@ -280,19 +282,20 @@ BEGIN
             v_nro_comprobante       NUMBER(7);
             v_tipo_impre            NUMBER(1);
             v_suc_cod               VARCHAR2(6);
+            v_usu_cod               VARCHAR2(6);  -- Agregada: faltaba en el FETCH
             v_tipo_ent              VARCHAR2(1);
             v_ent_rut               NUMBER(9);
             v_ent_nombre            VARCHAR2(255);
             v_tra_rut               NUMBER(9);
             v_tra_dig               VARCHAR2(1);
-            v_tra_nombre            VARCHAR2(40);
-            v_tra_ape               VARCHAR2(40);
+            v_tra_nombre            VARCHAR2(100);  -- Aumentado de 40 a 100 para evitar ORA-06502
+            v_tra_ape               VARCHAR2(100);  -- Aumentado de 40 a 100 para evitar ORA-06502
             v_dias_trab             NUMBER(5);
             v_rem_impo              NUMBER(8);
             v_monto_cotizado        NUMBER(8);
             v_fec_pago              DATE;
             v_folio_planilla        NUMBER(10);
-            v_raz_soc               VARCHAR2(40);
+            v_raz_soc               VARCHAR2(100);  -- Aumentado de 40 a 100 para evitar ORA-06502
             v_salud                 NUMBER(2);
             v_monto_sis             NUMBER(8);
             v_usu_pago_retroactivo  VARCHAR2(1);
@@ -302,11 +305,10 @@ BEGIN
             -- Procesar cursor y contar registros
             LOOP
                 FETCH v_cursor_datos_sp INTO
-                    v_rec_periodo, v_nro_comprobante, v_tipo_impre, v_suc_cod,
+                    v_rec_periodo, v_nro_comprobante, v_tipo_impre, v_suc_cod, v_usu_cod,
                     v_tipo_ent, v_ent_rut, v_ent_nombre, v_tra_rut, v_tra_dig,
                     v_tra_nombre, v_tra_ape, v_dias_trab, v_rem_impo, v_monto_cotizado,
-                    v_fec_pago, v_folio_planilla, v_raz_soc, v_salud, v_monto_sis,
-                    v_usu_pago_retroactivo;
+                    v_fec_pago, v_folio_planilla, v_raz_soc, v_salud, v_monto_sis;
 
                 EXIT WHEN v_cursor_datos_sp%NOTFOUND;
                 v_num_registros := v_num_registros + 1;
@@ -345,14 +347,15 @@ BEGIN
 
         -- Volver a llamar al SP para obtener los datos formateados para el cursor principal
         IF v_es_empresa_publica = 'N' THEN
-            -- Empresa privada: llamar a PRC_CERTCOT_MISCOT_TRAB
-            PRC_CERTCOT_MISCOT_TRAB(
+            -- Empresa privada: llamar a PRC_REC_CERTCOT_TRAB
+            PRC_REC_CERTCOT_TRAB(
                 p_fec_ini    => v_per_desde,
                 p_fec_ter    => v_per_hasta,
                 p_emp_rut    => p_emp_rut,
                 p_convenio   => p_cnv_cta,
                 p_rut_tra    => p_rut_tra,
-                p_parametro1 => p_tipo_con,
+                p_tipoCon    => p_tipo_con,
+                p_parametro  => NULL,
                 p_parametro2 => NULL,
                 p_parametro3 => p_imp_ccaf,
                 p_cursor     => v_cursor_datos_sp
@@ -365,7 +368,8 @@ BEGIN
                 p_emp_rut    => p_emp_rut,
                 p_convenio   => p_cnv_cta,
                 p_rut_tra    => p_rut_tra,
-                p_parametro1 => p_tipo_con,
+                p_tipoCon    => p_tipo_con,
+                p_Parametro  => NULL,
                 p_parametro2 => NULL,
                 p_parametro3 => p_imp_ccaf,
                 p_cursor     => v_cursor_datos_sp
@@ -628,4 +632,3 @@ BEGIN
     END; -- Fin del BEGIN interno del bloque DECLARE
 
 END PRC_GENERAR_CERTCOT_CERTIFICADOCOTPREV;
-/

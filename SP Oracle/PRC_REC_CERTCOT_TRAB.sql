@@ -14,8 +14,8 @@ CREATE OR REPLACE PROCEDURE PRC_REC_CERTCOT_TRAB (
     -- Declaración de variables
     v_tipoImp       NUMBER(1);
     v_periodo       DATE;
-    v_nomTra        VARCHAR2(40);
-    v_apeTra        VARCHAR2(40);
+    v_nomTra        VARCHAR2(100);  -- Aumentado de 40 a 100 para evitar ORA-06502
+    v_apeTra        VARCHAR2(100);  -- Aumentado de 40 a 100 para evitar ORA-06502
 
 BEGIN
 
@@ -961,7 +961,7 @@ BEGIN
         vt.USU_CODIGO,
         'E' AS TIPO_ENT,
         ep.ENT_RUT,
-        'TRAB.PES. ' || SUBSTR(LTRIM(RTRIM(ep.ENT_NOMBRE)), 1, 20) AS ENT_NOMBRE,
+        SUBSTR('TRAB.PES. ' || LTRIM(RTRIM(ep.ENT_NOMBRE)), 1, 250) AS ENT_NOMBRE,
         vt.TRA_RUT,
         vt.TRA_DIG,
         vt.TRA_NOMBRE,
@@ -1093,7 +1093,7 @@ BEGIN
         vt.USU_CODIGO,
         'G' AS TIPO_ENT,
         ep.ENT_RUT,
-        SUBSTR(LTRIM(RTRIM(ep.ENT_NOMBRE)), 1, 20) || ' (APV)' AS ENT_NOMBRE,
+        SUBSTR(LTRIM(RTRIM(ep.ENT_NOMBRE)) || ' (APV)', 1, 250) AS ENT_NOMBRE,
         vt.TRA_RUT,
         vt.TRA_DIG,
         vt.TRA_NOMBRE,
@@ -1140,7 +1140,7 @@ BEGIN
         vt.USU_CODIGO,
         'G' AS TIPO_ENT,
         ep.ENT_RUT,
-        SUBSTR(LTRIM(RTRIM(ep.ENT_NOMBRE)), 1, 19) || ' (APV)' AS ENT_NOMBRE,
+        SUBSTR(LTRIM(RTRIM(ep.ENT_NOMBRE)) || ' (APV)', 1, 250) AS ENT_NOMBRE,
         vt.TRA_RUT,
         vt.TRA_DIG,
         vt.TRA_NOMBRE,
@@ -1501,7 +1501,7 @@ BEGIN
         vt.USU_CODIGO,
         'J' AS TIPO_ENT,
         ep.ENT_RUT,
-        'CTA.AHO.PREV. ' || SUBSTR(LTRIM(RTRIM(ep.ENT_NOMBRE)), 1, 20) AS ENT_NOMBRE,
+        SUBSTR('CTA.AHO.PREV. ' || LTRIM(RTRIM(ep.ENT_NOMBRE)), 1, 250) AS ENT_NOMBRE,
         vt.TRA_RUT,
         vt.TRA_DIG,
         vt.TRA_NOMBRE,
@@ -1552,7 +1552,7 @@ BEGIN
         vt.USU_CODIGO,
         'J' AS TIPO_ENT,
         ep.ENT_RUT,
-        'CTA.AHO.PREV. ' || SUBSTR(LTRIM(RTRIM(ep.ENT_NOMBRE)), 1, 20) AS ENT_NOMBRE,
+        SUBSTR('CTA.AHO.PREV. ' || LTRIM(RTRIM(ep.ENT_NOMBRE)), 1, 250) AS ENT_NOMBRE,
         vt.TRA_RUT,
         vt.TRA_DIG,
         vt.TRA_NOMBRE,
