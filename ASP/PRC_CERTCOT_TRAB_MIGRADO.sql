@@ -276,13 +276,13 @@ BEGIN
     END IF;
 
         -- Contar registros del cursor retornado para validar si hay datos
-        -- Nota: Usamos una tabla temporal para procesar y contar los datos del cursor
+        -- Nota: Manejamos diferentes estructuras de cursor según el tipo de empresa
         DECLARE
             v_rec_periodo           DATE;
             v_nro_comprobante       NUMBER(7);
             v_tipo_impre            NUMBER(1);
             v_suc_cod               VARCHAR2(6);
-            v_usu_cod               VARCHAR2(6);  -- Agregada: faltaba en el FETCH
+            v_usu_cod               VARCHAR2(6);
             v_tipo_ent              VARCHAR2(1);
             v_ent_rut               NUMBER(9);
             v_ent_nombre            VARCHAR2(255);
@@ -298,21 +298,37 @@ BEGIN
             v_raz_soc               VARCHAR2(100);  -- Aumentado de 40 a 100 para evitar ORA-06502
             v_salud                 NUMBER(2);
             v_monto_sis             NUMBER(8);
-            v_usu_pago_retroactivo  VARCHAR2(1);
+            v_usu_pago_retroactivo  VARCHAR2(1);  -- Solo para empresas públicas
         BEGIN
             v_num_registros := 0;
 
-            -- Procesar cursor y contar registros
-            LOOP
-                FETCH v_cursor_datos_sp INTO
-                    v_rec_periodo, v_nro_comprobante, v_tipo_impre, v_suc_cod, v_usu_cod,
-                    v_tipo_ent, v_ent_rut, v_ent_nombre, v_tra_rut, v_tra_dig,
-                    v_tra_nombre, v_tra_ape, v_dias_trab, v_rem_impo, v_monto_cotizado,
-                    v_fec_pago, v_folio_planilla, v_raz_soc, v_salud, v_monto_sis;
+            -- Procesar cursor y contar registros según tipo de empresa
+            IF v_es_empresa_publica = 'N' THEN
+                -- Empresa privada: PRC_REC_CERTCOT_TRAB retorna 20 campos (sin USU_PAGO_RETROACTIVO)
+                LOOP
+                    FETCH v_cursor_datos_sp INTO
+                        v_rec_periodo, v_nro_comprobante, v_tipo_impre, v_suc_cod, v_usu_cod,
+                        v_tipo_ent, v_ent_rut, v_ent_nombre, v_tra_rut, v_tra_dig,
+                        v_tra_nombre, v_tra_ape, v_dias_trab, v_rem_impo, v_monto_cotizado,
+                        v_fec_pago, v_folio_planilla, v_raz_soc, v_salud, v_monto_sis;
 
-                EXIT WHEN v_cursor_datos_sp%NOTFOUND;
-                v_num_registros := v_num_registros + 1;
-            END LOOP;
+                    EXIT WHEN v_cursor_datos_sp%NOTFOUND;
+                    v_num_registros := v_num_registros + 1;
+                END LOOP;
+            ELSE
+                -- Empresa pública: PRC_CERTCOT_TRAB_PUB retorna 21 campos (con USU_PAGO_RETROACTIVO)
+                LOOP
+                    FETCH v_cursor_datos_sp INTO
+                        v_rec_periodo, v_nro_comprobante, v_tipo_impre, v_suc_cod, v_usu_cod,
+                        v_tipo_ent, v_ent_rut, v_ent_nombre, v_tra_rut, v_tra_dig,
+                        v_tra_nombre, v_tra_ape, v_dias_trab, v_rem_impo, v_monto_cotizado,
+                        v_fec_pago, v_folio_planilla, v_raz_soc, v_salud, v_monto_sis,
+                        v_usu_pago_retroactivo;
+
+                    EXIT WHEN v_cursor_datos_sp%NOTFOUND;
+                    v_num_registros := v_num_registros + 1;
+                END LOOP;
+            END IF;
 
             -- Cerrar el cursor
             CLOSE v_cursor_datos_sp;
@@ -378,131 +394,215 @@ BEGIN
 
         -- 1. CURSOR DE DATOS PRINCIPALES - Usar datos del SP con formateo para PDF
         -- Migra toda la lógica de formateo del bucle DO WHILE NOT rsx.EOF del ASP
-        OPEN p_cursor_datos FOR
-            SELECT
-                -- DATOS DE IDENTIFICACIÓN
-                d.REC_PERIODO,
-                d.TRA_RUT,
-                d.TRA_DIG,
-                TRIM(d.TRA_NOMBRE || ' ' || d.TRA_APE) AS TRABAJADOR_NOMBRE_COMPLETO,
-                d.ENT_RUT,
-                d.ENT_NOMBRE,
-                d.RAZ_SOC AS EMPRESA_RAZON_SOCIAL,
+        -- IMPORTANTE: Usar directamente los datos de los SPs Oracle usando GTT
 
-                -- DATOS FINANCIEROS
-                d.DIAS_TRAB,
-                d.REM_IMPO,
-                d.MONTO_COTIZADO,
-                d.MONTO_SIS,
-                d.FEC_PAGO,
-                d.FOLIO_PLANILLA,
-                d.SALUD,
+        -- Limpiar GTT antes de usar
+        DELETE FROM GTT_REC_CERT_DETALLE;
 
-                -- FORMATEO LISTO PARA PDF (igual que el ASP)
-                -- Mes formateado como "ENE-2023" (migra lógica del ASP)
-                CASE EXTRACT(MONTH FROM d.REC_PERIODO)
-                    WHEN 1 THEN 'ENE-' || EXTRACT(YEAR FROM d.REC_PERIODO)
-                    WHEN 2 THEN 'FEB-' || EXTRACT(YEAR FROM d.REC_PERIODO)
-                    WHEN 3 THEN 'MAR-' || EXTRACT(YEAR FROM d.REC_PERIODO)
-                    WHEN 4 THEN 'ABR-' || EXTRACT(YEAR FROM d.REC_PERIODO)
-                    WHEN 5 THEN 'MAY-' || EXTRACT(YEAR FROM d.REC_PERIODO)
-                    WHEN 6 THEN 'JUN-' || EXTRACT(YEAR FROM d.REC_PERIODO)
-                    WHEN 7 THEN 'JUL-' || EXTRACT(YEAR FROM d.REC_PERIODO)
-                    WHEN 8 THEN 'AGO-' || EXTRACT(YEAR FROM d.REC_PERIODO)
-                    WHEN 9 THEN 'SEP-' || EXTRACT(YEAR FROM d.REC_PERIODO)
-                    WHEN 10 THEN 'OCT-' || EXTRACT(YEAR FROM d.REC_PERIODO)
-                    WHEN 11 THEN 'NOV-' || EXTRACT(YEAR FROM d.REC_PERIODO)
-                    WHEN 12 THEN 'DIC-' || EXTRACT(YEAR FROM d.REC_PERIODO)
-                END AS MES_ANIO_FORMATEADO,
+        -- Variables para procesar el cursor del SP
+        DECLARE
+            v_rec_periodo           DATE;
+            v_nro_comprobante       NUMBER(7);
+            v_tipo_impre            NUMBER(1);
+            v_suc_cod               VARCHAR2(6);
+            v_usu_cod               VARCHAR2(6);
+            v_tipo_ent              VARCHAR2(1);
+            v_ent_rut               NUMBER(9);
+            v_ent_nombre            VARCHAR2(100);  -- Según TBL_MISCOT_ESTRUCTURAS.sql
+            v_tra_rut               NUMBER(9);
+            v_tra_dig               VARCHAR2(1);
+            v_tra_nombre            VARCHAR2(100); -- Según TBL_MISCOT_ESTRUCTURAS.sql
+            v_tra_ape               VARCHAR2(100); -- Según TBL_MISCOT_ESTRUCTURAS.sql
+            v_dias_trab             NUMBER(5);
+            v_rem_impo              NUMBER(8);
+            v_monto_cotizado        NUMBER(8);
+            v_fec_pago              DATE;
+            v_folio_planilla        NUMBER(10);
+            v_raz_soc               VARCHAR2(40);
+            v_salud                 NUMBER(2);
+            v_monto_sis             NUMBER(8);
+            v_usu_pago_retroactivo  VARCHAR2(1);
 
-                -- Nombres de entidad formateados (migra lógica especial del ASP)
-                CASE
-                    -- Lógica especial Santa María (del ASP líneas ~400)
-                    WHEN TRIM(TO_CHAR(d.ENT_RUT)) = '98000000'
-                         AND (EXTRACT(YEAR FROM d.REC_PERIODO) < 2008
-                              OR (EXTRACT(YEAR FROM d.REC_PERIODO) = 2008 AND EXTRACT(MONTH FROM d.REC_PERIODO) <= 3))
-                         AND TRIM(d.ENT_NOMBRE) != 'SEG. CES.'
-                    THEN 'SANTA MARIA'
+        BEGIN
+            -- Cargar datos del cursor del SP en la GTT
+            IF v_es_empresa_publica = 'N' THEN
+                -- Empresa privada: PRC_REC_CERTCOT_TRAB retorna 20 campos (sin USU_PAGO_RETROACTIVO)
+                LOOP
+                    FETCH v_cursor_datos_sp INTO
+                        v_rec_periodo, v_nro_comprobante, v_tipo_impre,
+                        v_suc_cod, v_usu_cod, v_tipo_ent,
+                        v_ent_rut, v_ent_nombre, v_tra_rut,
+                        v_tra_dig, v_tra_nombre, v_tra_ape,
+                        v_dias_trab, v_rem_impo, v_monto_cotizado,
+                        v_fec_pago, v_folio_planilla, v_raz_soc,
+                        v_salud, v_monto_sis;
 
-                    -- Lógica especial Vida Corp (del ASP VOS20151130)
-                    WHEN TRIM(TO_CHAR(d.ENT_RUT)) = '96571890'
-                         AND (EXTRACT(YEAR FROM d.REC_PERIODO) < TO_NUMBER(v_anio_confuturo)
-                              OR (EXTRACT(YEAR FROM d.REC_PERIODO) = TO_NUMBER(v_anio_confuturo)
-                                  AND EXTRACT(MONTH FROM d.REC_PERIODO) < TO_NUMBER(v_mes_confuturo)))
-                    THEN 'VIDA CORP CIA DE SEGUROS'
+                    EXIT WHEN v_cursor_datos_sp%NOTFOUND;
 
-                    -- Caso normal - truncar a 26 caracteres como el ASP
-                    ELSE SUBSTR(TRIM(d.ENT_NOMBRE), 1, 26)
-                END AS ENTIDAD_NOMBRE_FORMATEADO,
+                    -- Para empresas privadas, establecer USU_PAGO_RETROACTIVO como 'N'
+                    v_usu_pago_retroactivo := 'N';
 
-                -- Montos formateados (reemplaza FormatCurrency del ASP)
-                TO_CHAR(d.REM_IMPO, 'FM999,999,999') AS REM_IMPO_FORMATEADO,
-                TO_CHAR(d.MONTO_COTIZADO, 'FM999,999,999') AS MONTO_COTIZADO_FORMATEADO,
-                TO_CHAR(d.MONTO_SIS, 'FM999,999,999') AS MONTO_SIS_FORMATEADO,
+                    -- Insertar en GTT (sin USU_PAGO_RETROACTIVO ya que la GTT no lo tiene)
+                    INSERT INTO GTT_REC_CERT_DETALLE (
+                        REC_PERIODO, NRO_COMPROBANTE, TIPO_IMPRE, SUC_COD, USU_COD,
+                        TIPO_ENT, ENT_RUT, ENT_NOMBRE, TRA_RUT, TRA_DIG, TRA_NOMBRE, TRA_APE,
+                        DIAS_TRAB, REM_IMPO, MONTO_COTIZADO, FEC_PAGO, FOLIO_PLANILLA,
+                        RAZ_SOC, SALUD, MONTO_SIS
+                    ) VALUES (
+                        v_rec_periodo, v_nro_comprobante, v_tipo_impre, v_suc_cod, v_usu_cod,
+                        v_tipo_ent, v_ent_rut, v_ent_nombre, v_tra_rut, v_tra_dig, v_tra_nombre, v_tra_ape,
+                        v_dias_trab, v_rem_impo, v_monto_cotizado, v_fec_pago, v_folio_planilla,
+                        v_raz_soc, v_salud, v_monto_sis
+                    );
+                END LOOP;
+            ELSE
+                -- Empresa pública: PRC_CERTCOT_TRAB_PUB retorna 21 campos (con USU_PAGO_RETROACTIVO)
+                LOOP
+                    FETCH v_cursor_datos_sp INTO
+                        v_rec_periodo, v_nro_comprobante, v_tipo_impre,
+                        v_suc_cod, v_usu_cod, v_tipo_ent,
+                        v_ent_rut, v_ent_nombre, v_tra_rut,
+                        v_tra_dig, v_tra_nombre, v_tra_ape,
+                        v_dias_trab, v_rem_impo, v_monto_cotizado,
+                        v_fec_pago, v_folio_planilla, v_raz_soc,
+                        v_salud, v_monto_sis, v_usu_pago_retroactivo;
 
-                -- Fecha formateada
-                TO_CHAR(d.FEC_PAGO, 'DD/MM/YYYY') AS FECHA_PAGO_FORMATEADA,
+                    EXIT WHEN v_cursor_datos_sp%NOTFOUND;
 
-                -- CAMPOS ESPECÍFICOS PARA EMPRESAS PÚBLICAS (simplificado - USU_COD no existe en Oracle)
-                'N' AS USU_PAGO_RETROACTIVO,
-                0 AS TIPO_IMPRE,
-                NULL AS USU_COD,
+                    -- Insertar en GTT (sin USU_PAGO_RETROACTIVO ya que la GTT no lo tiene)
+                    INSERT INTO GTT_REC_CERT_DETALLE (
+                        REC_PERIODO, NRO_COMPROBANTE, TIPO_IMPRE, SUC_COD, USU_COD,
+                        TIPO_ENT, ENT_RUT, ENT_NOMBRE, TRA_RUT, TRA_DIG, TRA_NOMBRE, TRA_APE,
+                        DIAS_TRAB, REM_IMPO, MONTO_COTIZADO, FEC_PAGO, FOLIO_PLANILLA,
+                        RAZ_SOC, SALUD, MONTO_SIS
+                    ) VALUES (
+                        v_rec_periodo, v_nro_comprobante, v_tipo_impre, v_suc_cod, v_usu_cod,
+                        v_tipo_ent, v_ent_rut, v_ent_nombre, v_tra_rut, v_tra_dig, v_tra_nombre, v_tra_ape,
+                        v_dias_trab, v_rem_impo, v_monto_cotizado, v_fec_pago, v_folio_planilla,
+                        v_raz_soc, v_salud, v_monto_sis
+                    );
+                END LOOP;
+            END IF;
 
-                -- Mes retroactivo formateado (simplificado - USU_COD no existe en Oracle)
-                NULL AS MES_RETROACTIVO_FORMATEADO,
+            -- Cerrar el cursor
+            CLOSE v_cursor_datos_sp;
 
-                -- CONTROL DE PAGINACIÓN (migra variables del ASP: regPer, npag, periodoAnt)
-                ROW_NUMBER() OVER (ORDER BY d.REC_PERIODO, d.ENT_NOMBRE, d.REM_IMPO) AS NUMERO_FILA,
-
-                -- Detectar cambio de período para separadores (equivale a periodoAnt del ASP)
-                CASE
-                    WHEN LAG(d.REC_PERIODO) OVER (ORDER BY d.REC_PERIODO, d.ENT_NOMBRE, d.REM_IMPO) != d.REC_PERIODO
-                    THEN 'S'
-                    ELSE 'N'
-                END AS ES_CAMBIO_PERIODO,
-
-                -- Información de página (migra lógica de paginación del ASP)
-                CASE
-                    WHEN v_num_registros <= 30 THEN 36  -- RegHasta = 36
-                    ELSE 42                             -- RegHasta = 42
-                END AS REGISTROS_POR_PAGINA,
-
-                -- Número de página actual
-                CEIL(ROW_NUMBER() OVER (ORDER BY d.REC_PERIODO, d.ENT_NOMBRE, d.REM_IMPO) /
-                     CASE WHEN v_num_registros <= 30 THEN 36 ELSE 42 END) AS NUMERO_PAGINA
-
-            FROM (
-                -- USAR DATOS REALES DE LAS TABLAS ORACLE
-                -- Consulta básica para obtener datos de cotizaciones
+            -- Abrir cursor principal con datos formateados para PDF usando GTT
+            OPEN p_cursor_datos FOR
                 SELECT
-                    t.REC_PERIODO,
-                    t.TRA_RUT,
-                    t.TRA_DIGITO AS TRA_DIG,
-                    t.TRA_NOMTRA AS TRA_NOMBRE,
-                    t.TRA_APETRA AS TRA_APE,
-                    afp.ENT_RUT,
-                    ep.ENT_NOMBRE,
-                    e.EMP_RAZSOC AS RAZ_SOC,
-                    t.TRA_NRO_DIAS_TRAB AS DIAS_TRAB,
-                    t.TRA_REM_IMPONIBLE AS REM_IMPO,
-                    afp.AFP_COT_OBLIGATORIA AS MONTO_COTIZADO,
-                    afp.AFP_SEG_INV_SOBRE AS MONTO_SIS,
-                    p.PAG_FECPAG AS FEC_PAGO,
-                    pl.PLA_NRO_SERIE AS FOLIO_PLANILLA,
-                    isa.ISA_COT_OBLIGATORIA AS SALUD
-                FROM REC_TRABAJADOR t
-                LEFT JOIN REC_EMPRESA e ON t.CON_RUT = e.CON_RUT AND t.CON_CORREL = e.CON_CORREL AND t.REC_PERIODO = e.REC_PERIODO
-                LEFT JOIN REC_TRAAFP afp ON t.TRA_RUT = afp.TRA_RUT AND t.CON_RUT = afp.CON_RUT AND t.CON_CORREL = afp.CON_CORREL AND t.REC_PERIODO = afp.REC_PERIODO
-                LEFT JOIN REC_ENTPREV ep ON afp.ENT_RUT = ep.ENT_RUT
-                LEFT JOIN REC_PAGO p ON t.CON_RUT = p.CON_RUT AND t.CON_CORREL = p.CON_CORREL AND t.REC_PERIODO = p.REC_PERIODO
-                LEFT JOIN REC_PLANILLA pl ON p.NRO_COMPROBANTE = pl.NRO_COMPROBANTE AND p.REC_PERIODO = pl.REC_PERIODO
-                LEFT JOIN REC_TRAISA isa ON t.TRA_RUT = isa.TRA_RUT AND t.CON_RUT = isa.CON_RUT AND t.CON_CORREL = isa.CON_CORREL AND t.REC_PERIODO = isa.REC_PERIODO
-                WHERE t.TRA_RUT = p_rut_tra
-                  AND t.CON_RUT = p_emp_rut
-                  AND t.CON_CORREL = p_cnv_cta
-                  AND t.REC_PERIODO BETWEEN v_per_desde AND v_per_hasta
-                ORDER BY t.REC_PERIODO, ep.ENT_NOMBRE, t.TRA_REM_IMPONIBLE
-            ) d;
+                    -- DATOS DE IDENTIFICACIÓN
+                    d.REC_PERIODO,
+                    d.TRA_RUT,
+                    d.TRA_DIG,
+                    TRIM(d.TRA_NOMBRE || ' ' || d.TRA_APE) AS TRABAJADOR_NOMBRE_COMPLETO,
+                    d.ENT_RUT,
+                    d.ENT_NOMBRE,
+                    d.RAZ_SOC AS EMPRESA_RAZON_SOCIAL,
+
+                    -- DATOS FINANCIEROS
+                    d.DIAS_TRAB,
+                    d.REM_IMPO,
+                    d.MONTO_COTIZADO,
+                    d.MONTO_SIS,
+                    d.FEC_PAGO,
+                    d.FOLIO_PLANILLA,
+                    d.SALUD,
+
+                    -- FORMATEO LISTO PARA PDF (igual que el ASP)
+                    -- Mes formateado como "ENE-2023" (migra lógica del ASP)
+                    CASE EXTRACT(MONTH FROM d.REC_PERIODO)
+                        WHEN 1 THEN 'ENE-' || EXTRACT(YEAR FROM d.REC_PERIODO)
+                        WHEN 2 THEN 'FEB-' || EXTRACT(YEAR FROM d.REC_PERIODO)
+                        WHEN 3 THEN 'MAR-' || EXTRACT(YEAR FROM d.REC_PERIODO)
+                        WHEN 4 THEN 'ABR-' || EXTRACT(YEAR FROM d.REC_PERIODO)
+                        WHEN 5 THEN 'MAY-' || EXTRACT(YEAR FROM d.REC_PERIODO)
+                        WHEN 6 THEN 'JUN-' || EXTRACT(YEAR FROM d.REC_PERIODO)
+                        WHEN 7 THEN 'JUL-' || EXTRACT(YEAR FROM d.REC_PERIODO)
+                        WHEN 8 THEN 'AGO-' || EXTRACT(YEAR FROM d.REC_PERIODO)
+                        WHEN 9 THEN 'SEP-' || EXTRACT(YEAR FROM d.REC_PERIODO)
+                        WHEN 10 THEN 'OCT-' || EXTRACT(YEAR FROM d.REC_PERIODO)
+                        WHEN 11 THEN 'NOV-' || EXTRACT(YEAR FROM d.REC_PERIODO)
+                        WHEN 12 THEN 'DIC-' || EXTRACT(YEAR FROM d.REC_PERIODO)
+                    END AS MES_ANIO_FORMATEADO,
+
+                    -- Nombres de entidad formateados (migra lógica especial del ASP)
+                    CASE
+                        -- Lógica especial Santa María (del ASP líneas ~400)
+                        WHEN TRIM(TO_CHAR(d.ENT_RUT)) = '98000000'
+                             AND (EXTRACT(YEAR FROM d.REC_PERIODO) < 2008
+                                  OR (EXTRACT(YEAR FROM d.REC_PERIODO) = 2008 AND EXTRACT(MONTH FROM d.REC_PERIODO) <= 3))
+                             AND TRIM(d.ENT_NOMBRE) != 'SEG. CES.'
+                        THEN 'SANTA MARIA'
+
+                        -- Lógica especial Vida Corp (del ASP VOS20151130)
+                        WHEN TRIM(TO_CHAR(d.ENT_RUT)) = '96571890'
+                             AND (EXTRACT(YEAR FROM d.REC_PERIODO) < TO_NUMBER(v_anio_confuturo)
+                                  OR (EXTRACT(YEAR FROM d.REC_PERIODO) = TO_NUMBER(v_anio_confuturo)
+                                      AND EXTRACT(MONTH FROM d.REC_PERIODO) < TO_NUMBER(v_mes_confuturo)))
+                        THEN 'VIDA CORP CIA DE SEGUROS'
+
+                        -- Caso normal - truncar a 26 caracteres como el ASP
+                        ELSE SUBSTR(TRIM(d.ENT_NOMBRE), 1, 26)
+                    END AS ENTIDAD_NOMBRE_FORMATEADO,
+
+                    -- Montos formateados (reemplaza FormatCurrency del ASP)
+                    TO_CHAR(d.REM_IMPO, 'FM999,999,999') AS REM_IMPO_FORMATEADO,
+                    TO_CHAR(d.MONTO_COTIZADO, 'FM999,999,999') AS MONTO_COTIZADO_FORMATEADO,
+                    TO_CHAR(d.MONTO_SIS, 'FM999,999,999') AS MONTO_SIS_FORMATEADO,
+
+                    -- Fecha formateada
+                    TO_CHAR(d.FEC_PAGO, 'DD/MM/YYYY') AS FECHA_PAGO_FORMATEADA,
+
+                    -- CAMPOS ESPECÍFICOS PARA EMPRESAS PÚBLICAS
+                    -- Como GTT no tiene USU_PAGO_RETROACTIVO, usamos la variable de empresa pública
+                    CASE WHEN v_es_empresa_publica = 'S' THEN 'S' ELSE 'N' END AS USU_PAGO_RETROACTIVO,
+                    d.TIPO_IMPRE,
+                    d.USU_COD,
+
+                    -- Mes retroactivo formateado (para empresas públicas)
+                    CASE
+                        WHEN v_es_empresa_publica = 'S' THEN
+                            CASE EXTRACT(MONTH FROM d.REC_PERIODO)
+                                WHEN 1 THEN 'ENE-' || EXTRACT(YEAR FROM d.REC_PERIODO)
+                                WHEN 2 THEN 'FEB-' || EXTRACT(YEAR FROM d.REC_PERIODO)
+                                WHEN 3 THEN 'MAR-' || EXTRACT(YEAR FROM d.REC_PERIODO)
+                                WHEN 4 THEN 'ABR-' || EXTRACT(YEAR FROM d.REC_PERIODO)
+                                WHEN 5 THEN 'MAY-' || EXTRACT(YEAR FROM d.REC_PERIODO)
+                                WHEN 6 THEN 'JUN-' || EXTRACT(YEAR FROM d.REC_PERIODO)
+                                WHEN 7 THEN 'JUL-' || EXTRACT(YEAR FROM d.REC_PERIODO)
+                                WHEN 8 THEN 'AGO-' || EXTRACT(YEAR FROM d.REC_PERIODO)
+                                WHEN 9 THEN 'SEP-' || EXTRACT(YEAR FROM d.REC_PERIODO)
+                                WHEN 10 THEN 'OCT-' || EXTRACT(YEAR FROM d.REC_PERIODO)
+                                WHEN 11 THEN 'NOV-' || EXTRACT(YEAR FROM d.REC_PERIODO)
+                                WHEN 12 THEN 'DIC-' || EXTRACT(YEAR FROM d.REC_PERIODO)
+                            END
+                        ELSE NULL
+                    END AS MES_RETROACTIVO_FORMATEADO,
+
+                    -- CONTROL DE PAGINACIÓN (migra variables del ASP: regPer, npag, periodoAnt)
+                    ROW_NUMBER() OVER (ORDER BY d.REC_PERIODO, d.ENT_NOMBRE, d.REM_IMPO) AS NUMERO_FILA,
+
+                    -- Detectar cambio de período para separadores (equivale a periodoAnt del ASP)
+                    CASE
+                        WHEN LAG(d.REC_PERIODO) OVER (ORDER BY d.REC_PERIODO, d.ENT_NOMBRE, d.REM_IMPO) != d.REC_PERIODO
+                        THEN 'S'
+                        ELSE 'N'
+                    END AS ES_CAMBIO_PERIODO,
+
+                    -- Información de página (migra lógica de paginación del ASP)
+                    CASE
+                        WHEN v_num_registros <= 30 THEN 36  -- RegHasta = 36
+                        ELSE 42                             -- RegHasta = 42
+                    END AS REGISTROS_POR_PAGINA,
+
+                    -- Número de página actual
+                    CEIL(ROW_NUMBER() OVER (ORDER BY d.REC_PERIODO, d.ENT_NOMBRE, d.REM_IMPO) /
+                         CASE WHEN v_num_registros <= 30 THEN 36 ELSE 42 END) AS NUMERO_PAGINA
+
+                FROM GTT_REC_CERT_DETALLE d
+                ORDER BY d.REC_PERIODO, d.ENT_NOMBRE, d.REM_IMPO;
+
+        END; -- Fin del bloque DECLARE para manejo de datos del cursor
 
         -- 2. CURSOR DE ENCABEZADO - Datos para el header del PDF (migra Encabezado y Encabezado_Pub del ASP)
         OPEN p_cursor_encabezado FOR
